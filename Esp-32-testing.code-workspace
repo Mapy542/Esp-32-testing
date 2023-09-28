@@ -1,0 +1,17 @@
+{
+  "folders": [
+	{
+		"path": "."
+	},
+	{
+		"name": "wifitest1",
+		"path": "wifitest1"
+	}
+],
+  "settings": {
+    "files.associations": {
+      "*.ino": "cpp",
+      "system_error": "cpp"
+    }
+  }
+}
