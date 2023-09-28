@@ -2,9 +2,7 @@
 #include "WiFi.h"
 #include <DNSServer.h>
 
-std::string page =
-#include "page.html"
-    ;
+#include "web\WebCompiled.h"
 
 const char *ssid = "ESP-AP";
 const char *password = "password";
@@ -25,19 +23,11 @@ void setup() {
   Serial.print("IP address: ");
   Serial.println(WiFi.softAPIP());
 
-  server.on("/hello", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(200, "text/plain", "Hello World");
-  });
+  AddServerPages(server); // run python complied web include script
+  Serial.println("Server pages initialized");
 
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(200, "text/html", page.c_str());
-  });
-
-  server.onNotFound([](AsyncWebServerRequest *request) {
-    request->send(
-        404, "text/html",
-        "<html><head><title>404</title></head><body><h1>404</h1><p>Not "
-        "found</p> <p> Return <a href=\"/\">home.</a></p></body></html>");
+  server.on("/update", HTTP_POST, [](AsyncWebServerRequest *request) {
+    request->send(200, "text/plain", "This works as well");
   });
 
   server.begin();
