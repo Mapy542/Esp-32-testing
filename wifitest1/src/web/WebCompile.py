@@ -4,11 +4,17 @@
 import os
 
 CompiledWebFile = "WebCompiled.h"
+Minify = False  # remove all unnecessary characters from the html file if set to True
 
 
 def GETpage(page, html, ExtraIncludes, f):
+    # creates a simple get response for the html file
+    # can include extra includes and code in the lambda function
+    # may not be static if HTML is modified to show a current variable value
+
     if page == "index.html":
         page = "/"  # index.html is the default page so we need to change it to "/"
+
     f.append(
         'server.on("/'
         + str(page[:-5])
@@ -23,51 +29,67 @@ def GETpage(page, html, ExtraIncludes, f):
 
 
 def POSTpage(page, html, ExtraIncludes, f):
+    # creates a post response for the html file
+    # can include extra includes and code in the lambda function
+    # may not be static if HTML is modified to show a current variable value
+
     if page == "index.html":
         page = "/"  # index.html is the default page so we need to change it to "/"
 
     # get the inputs from the html file
     inputs = html.split("<input")
     inputs.pop(0)  # remove the first element because it is not an input
-    inputnames = []
-    inputtypes = []
+    InputNames = []
+    InputTypes = []
 
     for i in inputs:
         if 'type=\\"submit\\"' in i:  # ignore submit buttons as they are not inputs
             continue
         # get the name of the input
-        inputnames.append(i.split('name=\\"')[1].split('\\"')[0])
+        InputNames.append(i.split('name=\\"')[1].split('\\"')[0])
         # get the type of the input
-        inputtypes.append(i.split('type=\\"')[1].split('\\"')[0])
+        InputTypes.append(i.split('type=\\"')[1].split('\\"')[0])
 
-    # create external variables for the input names
-    # appended at the second line of the file
+    # remove duplicate inputs (radio buttons and checkboxes have the same name but different values)
+    uniqueInputNames = []
+    uniqueInputTypes = []
+    for i in range(len(InputNames)):
+        if InputNames[i] not in uniqueInputNames:
+            uniqueInputNames.append(InputNames[i])
+            uniqueInputTypes.append(InputTypes[i])
 
-    uniqueinputnames = []
-    uniqueinputtypes = []
-    for i in range(len(inputnames)):
-        if inputnames[i] not in uniqueinputnames:
-            uniqueinputnames.append(inputnames[i])
-            uniqueinputtypes.append(inputtypes[i])
+    for i in range(
+        len(uniqueInputNames)
+    ):  # add global string variables for each input before the AddServerPages function
+        if (
+            " String " + str(uniqueInputNames[i]) + ";\n" not in f
+        ):  # if the variable has not already been added, some forms may have the same input names
+            f.insert(1, " String " + str(uniqueInputNames[i]) + ";\n")
 
-    for i in range(len(uniqueinputnames)):
-        f.insert(1, " String " + str(uniqueinputnames[i]) + ";\n")
-
-    f.append(
+    f.append(  # add the post response to the file
         'server.on("/'
         + str(page[:-5])
         + '", HTTP_POST, [](AsyncWebServerRequest *request) {\n'
     )
 
-    for i in uniqueinputnames:
+    for (
+        i
+    ) in (
+        uniqueInputNames
+    ):  # parse the request arguments and store them in the global variables
         f.append("  " + i + ' = request->arg("' + i + '");\n')
 
-    f.append(ExtraIncludes + "\n")
+    f.append(ExtraIncludes + "\n")  # add extra includes if required
 
-    f.append('request->send(200, "text/html", "' + str(html) + '");\n' + "});\n\n")
+    f.append(
+        'request->send(200, "text/html", "' + str(html) + '");\n' + "});\n\n"
+    )  # finish the post response
 
 
 def Response404(page, html, f):
+    # creates a 404 response for the html file
+    # is a static response
+
     f.append(
         "server.onNotFound([](AsyncWebServerRequest *request){ \n"
         + '   request->send(404, "text/html", "'
@@ -78,7 +100,10 @@ def Response404(page, html, f):
 
 
 def ShowCurrentInHTML(html):
-    # modify the html file to show the current values of the inputs
+    # modify the html file to show the current values of the inputs of forms
+    # returns the modified html file and the extra includes required to do so
+
+    # get the inputs from the html file
     inputs = html.split("<input")
     InputsPrecursor = inputs[0]
     inputs.pop(0)  # remove the first element because it is not an input
@@ -90,59 +115,79 @@ def ShowCurrentInHTML(html):
         ):  # ignore submit buttons as they are not inputs
             continue
         # get the name of the input
-        inputname = inputs[i].split('name=\\"')[1].split('\\"')[0]
-        inputtype = inputs[i].split('type=\\"')[1].split('\\"')[0]
+        InputName = inputs[i].split('name=\\"')[1].split('\\"')[0]
+        InputType = inputs[i].split('type=\\"')[1].split('\\"')[0]
         if 'value=\\"' in inputs[i]:
             # get the value of the input
-            inputvalue = inputs[i].split('value=\\"')[1].split('\\"')[0]
+            InputValue = inputs[i].split('value=\\"')[1].split('\\"')[0]
         else:
-            inputvalue = ""
+            InputValue = ""
 
-        print(inputname, inputtype, inputvalue)
-
-        if inputtype == "text" or inputtype == "number":
+        if InputType == "text" or InputType == "number":
             # add a value attribute to the input
             inputs[i] = (
                 inputs[i].split(">")[0]
                 + ' value=" + '
-                + inputname
+                + InputName
                 + ' + ">'
                 + ">".join(inputs[i].split(">")[1:])
             )
-        elif inputtype == "checkbox" or inputtype == "radio":
-            print("checkbox")
+        elif InputType == "checkbox" or InputType == "radio":
             inputs[
                 i
             ] = (  # inject a string variable into the html file. This variable will contain "checked" if the input is checked and "" if it is not
                 inputs[i].split(">")[0]
                 + ' " + '
-                + inputvalue
+                + InputValue
                 + ' + ">'
                 + ">".join(inputs[i].split(">")[1:])
             )
             ExtraIncludes = ExtraIncludes + (
                 " String "
-                + inputvalue
+                + InputValue
                 + ";\n"
                 + " if ("
-                + inputname
+                + InputName
                 + '.equals("'
-                + inputvalue
+                + InputValue
                 + '")){\n'
                 + "   "
-                + inputvalue
+                + InputValue
                 + ' = "checked";\n'
                 + " }else{\n"
                 + "   "
-                + inputvalue
+                + InputValue
                 + ' = "";\n'
                 + " }\n"
             )
 
     # reassemble the html file
-    html = InputsPrecursor + "<input" + "<input ".join(inputs)
-    print(ExtraIncludes)
+    html = (
+        InputsPrecursor + "<input" + "<input ".join(inputs)
+    )  # extra "<input" is added to the end of the precursor because it was removed in the split and not added back in the join
     return html, ExtraIncludes
+
+
+def MinifyHTML(html):  # remove all unnecessary characters from the html file
+    # remove newlines
+    html = html.replace("\n", "")
+    # remove tabs
+    html = html.replace("\t", "")
+    # remove double spaces
+    html = html.replace("  ", "")
+
+    return html
+
+
+def CleanSyntax(html):  # modify the html file to be compatible with c++ as a string
+    # remove backslashes
+    html = html.replace("\\", "\\\\")
+    # remove double quotes
+    html = html.replace('"', "\\" + '"')
+    # remove single quotes
+    html = html.replace("'", "\\" + "'")
+
+    return html
 
 
 # get the current directory of the script
@@ -157,30 +202,29 @@ files = [f for f in files if f.endswith(".html")]
 with open(
     os.path.dirname(os.path.abspath(__file__)) + "/" + CompiledWebFile, "w"
 ) as CompileFile:
-    f = []
+    f = []  # create a list to store the file contents
+    # useful for inserting lines at specific positions
+
     # write function header
     f.append("#include <ESPAsyncWebServer.h>\n\n")
+    # global vars are inserted here when appropriate
     f.append("void AddServerPages(AsyncWebServer &server){\n")
 
-    for page in files:
+    for page in files:  # for every html file in the web folder
         # open the html file
         with open(
             os.path.dirname(os.path.abspath(__file__)) + "/" + page, "r"
         ) as html:  # do basic cleanup
             # read the file
             html = html.read()
-            # remove newlines
-            html = html.replace("\n", "")
-            # remove tabs
-            html = html.replace("\t", "")
-            # remove double spaces
-            html = html.replace("  ", "")
-            # remove backslashes
-            html = html.replace("\\", "\\\\")
-            # remove double quotes
-            html = html.replace('"', "\\" + '"')
-            # remove single quotes
-            html = html.replace("'", "\\" + "'")
+
+            html = MinifyHTML(
+                html
+            )  # remove unnecessary characters if required (messes up formatting just use it)
+
+            html = CleanSyntax(
+                html
+            )  # make the html file compatible with c++ (required)
 
             if page == "404.html":  # add custom 404 page if it exists
                 Response404(page, html, f)
@@ -193,6 +237,9 @@ with open(
                     EditedHTML, ExtraIncludes = ShowCurrentInHTML(
                         html
                     )  # get the edited html
+                    # extra includes are added to lambda function after the request arguments are parsed
+                    # this can allow for processing as required of those arguments
+
                 else:
                     EditedHTML = html
                     ExtraIncludes = ""
@@ -200,8 +247,9 @@ with open(
                 POSTpage(
                     page, EditedHTML, ExtraIncludes, f
                 )  # add the post response to the file
+
             else:
-                EditedHTML = html
+                EditedHTML = html  # if there is no form, just add the get response
                 ExtraIncludes = ""
 
             GETpage(
