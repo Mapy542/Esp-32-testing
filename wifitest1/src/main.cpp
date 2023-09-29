@@ -26,11 +26,17 @@ void setup() {
   AddServerPages(server); // run python complied web include script
   Serial.println("Server pages initialized");
 
-  server.on("/update", HTTP_POST, [](AsyncWebServerRequest *request) {
-    request->send(200, "text/plain", "This works as well");
-  });
-
   server.begin();
+
+  pinMode(2, OUTPUT);
 }
 
-void loop() { dnsServer.processNextRequest(); }
+void loop() {
+  dnsServer.processNextRequest();
+  Serial.println(light + ", " + LEDEnable);
+  if (LEDEnable.equals("on")) {
+    analogWrite(2, light.toInt());
+  } else {
+    analogWrite(2, 0);
+  }
+}
