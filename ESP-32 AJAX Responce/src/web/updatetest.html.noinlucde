@@ -1,0 +1,60 @@
+<html>
+    <head>
+        <title>ESP32 Update Test</title>
+        <style>
+            body {
+                background-color: #ffffff;
+                color: #2200aa;
+                font-family: "Courier New", Courier, monospace;
+                font-size: 1em;
+                text-align: center;
+            } 
+            .ButtonStyle{
+                background-color: #4e39c9;
+                border: none;
+                color: white;
+                padding: 15px 32px;
+                text-align: center;
+                text-decoration: none;
+                font-size: 16px;
+                border: #ffffff 2px solid; 
+                border-radius: 20px;
+            }
+        </style>
+    </head>
+    <body>  
+        <h1>ESP32 Update Test</h1>
+        <p>A University of Akron Money Drain</p>
+        <hr color="#000000">
+        <p> Input D4 value: <span id="GetInput">N.A.</span> </p>
+        <p> Live value updated from the pin every 250ms</p>
+        <hr color="#000000">
+        <form method="post"  action="/updatetest" enctype='multipart/form-data'>
+            <!--SHOW CURRENT-->
+            <p> Update D2 (Light): </p>
+            <p>Enable/Disable</p>
+            <input type="radio" name="LEDEnable" value="on">
+            <label for="on">On</label><br>
+            <input type="radio" name="LEDEnable" value="off">
+            <label for="off">Off</label><br>
+            <input type="submit" value="Submit" class="ButtonStyle">
+        </form>
+
+        <script>
+            setInterval(function() {
+                getData();
+            }, 250);
+
+            function getData() {
+                var X_HTTP = new XMLHttpRequest();
+                X_HTTP.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) { 
+                        document.getElementById("GetInput").innerHTML = this.responseText;
+                    }
+                };
+                X_HTTP.open("GET", "d5input", true);
+                X_HTTP.send(); 
+            }
+        </script>
+    </body>
+</html>
