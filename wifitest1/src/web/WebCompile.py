@@ -233,7 +233,7 @@ with open(
             if "</form>" in html:  # if theres a input form in the html file
                 if (
                     "<!--SHOW CURRENT-->" in html.split("<form")[1]
-                ):  # if the form should show the current values of the inputs
+                ):  # if the form should show the current values of the inputs on load
                     EditedHTML, ExtraIncludes = ShowCurrentInHTML(
                         html
                     )  # get the edited html
