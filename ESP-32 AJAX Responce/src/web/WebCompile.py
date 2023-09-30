@@ -86,21 +86,30 @@ def POSTpage(page, html, ExtraIncludes, f):
     )  # finish the post response
 
 
-def AJAXresponse(RequestName, f):
+def AJAXresponse(RequestName, RequestVars, f):
     # creates a simple get response for ajax request
     # responds with the string data of the request name from the global variable with the same name
 
-    if (
-        "String " + str(RequestName) + ";\n" not in f
-    ):  # if the variable has not already been added, some forms may have the same input names
-        f.insert(1, "String " + str(RequestName) + ";\n")
+    for (
+        i
+    ) in (
+        RequestVars
+    ):  # add global string variables for each input before the AddServerPages function
+        if (
+            " String " + str(i) + ";\n" not in f
+        ):  # if the variable has not already been added, some forms may have the same input names
+            f.insert(1, " String " + str(i) + ";\n")
+
+    CSVRequestVars = ' + "," + '.join(
+        RequestVars
+    )  # create a csv string of the request variables
 
     f.append(  # add the get response to the file
         'server.on("/'
         + str(RequestName)
         + '", HTTP_GET, [](AsyncWebServerRequest *request){ \n'
         + '   request->send(200, "text/html", '
-        + str(RequestName)
+        + str(CSVRequestVars)
         + ");\n"
         + "});\n\n"
     )
@@ -279,14 +288,26 @@ with open(
             if (
                 "XMLHttpRequest();" in html
             ):  # if there is an ajax request in the html file
-                RequestNames = []
+                RequestNames = []  # get the names of the requests
+                RequestVars = (
+                    []
+                )  # get the names of the variables that store the response data
 
+                inc = 0
                 for i in html.split("XMLHttpRequest();")[1:]:
-                    for j in i.split("open(")[1:]:
+                    for j in i.split("open(")[
+                        1:
+                    ]:  # get the name of the request. should only be one open per request
                         RequestNames.append(j.split(', \\"')[1].split('\\"')[0])
+                    RequestVars.append([])
+                    for l in i.split(".getElementById")[
+                        1:
+                    ]:  # get the name of the variable that stores the response data returned by the request
+                        RequestVars[inc].append(l.split('(\\"')[1].split('\\"')[0])
+                    inc += 1
 
-                for i in RequestNames:
-                    AJAXresponse(i, f)
+                for i in range(len(RequestNames)):
+                    AJAXresponse(RequestNames[i], RequestVars[i], f)
 
     # write function footer
     f.append("}\n")
