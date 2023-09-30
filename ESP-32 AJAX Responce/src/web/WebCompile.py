@@ -88,16 +88,12 @@ def POSTpage(page, html, ExtraIncludes, f):
 
 def AJAXresponse(RequestName, RequestVars, f):
     # creates a simple get response for ajax request
-    # responds with the string data of the request name from the global variable with the same name
+    # responds with the string data of the request variables separated by commas
 
-    for (
-        i
-    ) in (
-        RequestVars
-    ):  # add global string variables for each input before the AddServerPages function
-        if (
-            " String " + str(i) + ";\n" not in f
-        ):  # if the variable has not already been added, some forms may have the same input names
+    for i in RequestVars:
+        # add global string variables for each input before the AddServerPages function
+        if " String " + str(i) + ";\n" not in f:
+            # if the variable has not already been added, some forms may have the same input names
             f.insert(1, " String " + str(i) + ";\n")
 
     CSVRequestVars = ' + "," + '.join(
@@ -285,9 +281,7 @@ with open(
                 page, EditedHTML, ExtraIncludes, f
             )  # add the static get response to the file
 
-            if (
-                "XMLHttpRequest();" in html
-            ):  # if there is an ajax request in the html file
+            if "XMLHttpRequest" in html:  # if there is an ajax request in the html file
                 RequestNames = []  # get the names of the requests
                 RequestVars = (
                     []
@@ -295,18 +289,20 @@ with open(
 
                 inc = 0
                 for i in html.split("XMLHttpRequest();")[1:]:
-                    for j in i.split("open(")[
-                        1:
-                    ]:  # get the name of the request. should only be one open per request
+                    # get the request names and variable names for each request
+                    for j in i.split("open(")[1:]:
+                        # get the name of the request. should only be one open per request
                         RequestNames.append(j.split(', \\"')[1].split('\\"')[0])
+
                     RequestVars.append([])
-                    for l in i.split(".getElementById")[
-                        1:
-                    ]:  # get the name of the variable that stores the response data returned by the request
+                    for l in i.split(".getElementById")[1:]:
+                        # get the name of the variable that stores the response data returned by the request
+                        # there should be one variable per getElementById, and there should be multiple vars per request to save bandwidth
                         RequestVars[inc].append(l.split('(\\"')[1].split('\\"')[0])
                     inc += 1
 
                 for i in range(len(RequestNames)):
+                    # add the ajax responses to the file
                     AJAXresponse(RequestNames[i], RequestVars[i], f)
 
     # write function footer
