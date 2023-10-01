@@ -24,6 +24,13 @@ void setup() {
   Serial.println(WiFi.softAPIP());
 
   AddServerPages(server); // run python complied web include script
+
+  server.on("/live", HTTP_POST, [](AsyncWebServerRequest *request) {
+    light = request->arg("light");
+    LEDEnable = request->arg("LEDEnable");
+    request->send(200, "text/plain", "OK");
+  });
+
   Serial.println("Server pages initialized");
 
   server.begin();

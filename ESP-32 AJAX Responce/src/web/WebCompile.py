@@ -290,8 +290,8 @@ with open(
                 inc = 0
                 for i in html.split("XMLHttpRequest();")[1:]:
                     # get the request names and variable names for each request
-                    for j in i.split("open(")[1:]:
-                        # get the name of the request. should only be one open per request
+                    for j in i.split('open(\\"GET')[1:]:
+                        # get the name of the request. should only be one open per request (GET for REQUESTS, POST for submissions!!!!!!)
                         RequestNames.append(j.split(', \\"')[1].split('\\"')[0])
 
                     RequestVars.append([])
