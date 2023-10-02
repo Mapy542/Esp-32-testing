@@ -56,6 +56,7 @@ void setup() {
 
 void loop() {
   dnsServer.processNextRequest();
+  Serial.println(LEDEnable);
   if (LEDEnable.equals("on")) {
     analogWrite(2, light.toInt());
   } else {
